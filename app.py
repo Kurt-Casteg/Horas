@@ -59,7 +59,7 @@ st.markdown("""
 
     /* ── Título principal ── */
     .main-title {
-        font-size: 2rem;
+        font-size: rem;
         font-weight: 700;
         color: #ffffff;
         letter-spacing: -0.3px;
@@ -200,7 +200,7 @@ st.markdown("""
 # Encabezado
 # ---------------------------------------------------------------------------
 st.markdown("""
-<p class="main-title">🕐 Calculadora de Horas Extra</p>
+<p class="main-title">Calculadora de Horas Extra</p> 
 <p class="main-subtitle">
     SEREMI de Salud Ñuble &nbsp;·&nbsp;
     Lun–Jue 9h &nbsp;|&nbsp; Vie 8h &nbsp;·&nbsp;
@@ -350,10 +350,6 @@ st.markdown("""
     </div>
     <div class="designer">
         Diseñado por <strong style="color:#7ba3e0">Kurt Castro Ortega</strong>
-        &nbsp;·&nbsp; Uso interno exclusivo
-    </div>
-    <div class="privacy">
-        🔒 Los archivos subidos se procesan localmente y no se almacenan en ningún servidor
     </div>
 </div>
 """, unsafe_allow_html=True)
