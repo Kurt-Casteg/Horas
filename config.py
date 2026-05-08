@@ -35,7 +35,7 @@ STANDARD_HOURS: dict[int, int] = {
 }
 
 # Excedente mínimo (en minutos) para que se contabilice como hora extra
-OVERTIME_THRESHOLD_MINUTES: int = 20
+OVERTIME_THRESHOLD_MINUTES: int = 45
 
 # Año de referencia para interpretar las fechas de feriados
 HOLIDAYS_YEAR: int = 2026
