@@ -29,18 +29,58 @@ st.set_page_config(
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
+    /* Fondo general de la app */
+    .stApp {
+        background: linear-gradient(135deg, #e8eaf0 0%, #d5d8e0 100%);
+    }
+
+    /* Contenedor principal con efecto glassmorphism */
+    .block-container {
+        background: rgba(255, 255, 255, 0.55) !important;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        box-shadow: 0 8px 32px rgba(60, 70, 110, 0.10);
+        padding-top: 2rem !important;
+    }
+
+    /* Tarjetas de métricas */
     .metric-card {
-        background: #f0f4ff;
+        background: rgba(240, 244, 255, 0.75);
         border-left: 4px solid #3b5bdb;
-        border-radius: 8px;
+        border-radius: 10px;
         padding: 16px 20px;
         margin-bottom: 8px;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 2px 8px rgba(60, 70, 110, 0.08);
     }
-    .metric-card .label { font-size: 13px; color: #666; margin-bottom: 4px; }
+    .metric-card .label { font-size: 13px; color: #555; margin-bottom: 4px; }
     .metric-card .value { font-size: 28px; font-weight: 700; color: #1a1a2e; }
-    .metric-highlight { border-left-color: #2f9e44; background: #f0fff4; }
+    .metric-highlight {
+        border-left-color: #2f9e44;
+        background: rgba(240, 255, 244, 0.80);
+    }
+
+    /* Tabla */
     .stDataFrame thead tr th { background-color: #e8eaf6 !important; }
+
+    /* Uploader */
     div[data-testid="stFileUploader"] { border-radius: 10px; }
+
+    /* Pie de página */
+    .footer {
+        margin-top: 3rem;
+        padding: 1.5rem 0 0.5rem 0;
+        border-top: 1px solid rgba(100, 110, 150, 0.20);
+        text-align: center;
+        color: #666;
+        font-size: 12px;
+        line-height: 1.8;
+    }
+    .footer strong { color: #444; }
+    .footer a { color: #3b5bdb; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -48,7 +88,7 @@ st.markdown("""
 # Encabezado
 # ---------------------------------------------------------------------------
 st.title("🕐 Calculadora de Horas Extra")
-st.caption("SEREMI de Salud Ñuble · Jornada estándar: Lun–Jue 9h | Vie 8h · Umbral: ≥ 20 min")
+st.caption("SEREMI de Salud Ñuble · Jornada estándar: Lun–Jue 9h | Vie 8h · Umbral: ≥ 45 min")
 st.divider()
 
 # ---------------------------------------------------------------------------
@@ -179,3 +219,16 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True,
 )
+
+# ---------------------------------------------------------------------------
+# Pie de página
+# ---------------------------------------------------------------------------
+st.markdown("""
+<div class="footer">
+    <strong>Calculadora de Horas Extra Efectivas</strong> · v1.0 · 2026<br>
+    SEREMI de Salud Ñuble · Departamento de Control de Gestión<br>
+    Los archivos subidos se procesan localmente y no se almacenan en ningún servidor.<br><br>
+    Diseñado por <strong>Kurt Castro Ortega</strong> ·
+    Para uso interno exclusivo de la institución
+</div>
+""", unsafe_allow_html=True)
