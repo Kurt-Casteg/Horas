@@ -59,7 +59,7 @@ st.markdown("""
 
     /* ── Título principal ── */
     .main-title {
-        font-size: 4rem;
+        font-size: 20px;
         font-weight: 700;
         color: #ffffff;
         letter-spacing: -0.3px;
