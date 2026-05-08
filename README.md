@@ -35,7 +35,7 @@ El reporte Excel se genera en `output/horas_extra_<Mes>_<Año>.xlsx`.
 | Viernes       | 8 horas          |
 | Sábado/Domingo| No aplica        |
 
-- **Umbral**: el excedente sobre la jornada base debe ser **≥ 20 minutos** para contabilizarse como hora extra.
+- **Umbral**: el excedente sobre la jornada base debe ser **≥ 45 minutos** para contabilizarse como hora extra.
 - **Feriados**: no existe jornada base; cualquier tiempo trabajado es extra efectivo.
 
 ## Tests
