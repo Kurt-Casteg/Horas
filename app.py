@@ -227,8 +227,6 @@ st.markdown("""
 <div class="footer">
     <strong>Calculadora de Horas Extra Efectivas</strong> · v1.0 · 2026<br>
     SEREMI de Salud Ñuble · Departamento de Control de Gestión<br>
-    Los archivos subidos se procesan localmente y no se almacenan en ningún servidor.<br><br>
     Diseñado por <strong>Kurt Castro Ortega</strong> ·
-    Para uso interno exclusivo de la institución
 </div>
 """, unsafe_allow_html=True)
