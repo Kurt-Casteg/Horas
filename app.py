@@ -421,7 +421,7 @@ styled = (
 st.dataframe(
     styled,
     column_order=display_cols,
-    use_container_width=True,
+    width="stretch",
     height=min(38 * len(df) + 38, 620),
 )
 
@@ -443,7 +443,7 @@ st.download_button(
     data=excel_bytes,
     file_name=filename,
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    use_container_width=True,
+    width="stretch",
 )
 
 # ---------------------------------------------------------------------------
