@@ -18,23 +18,13 @@ def calculate_overtime(
     records: list[dict],
     holidays: set[date],
 ) -> list[dict]:
-    """Calcula las horas extra efectivas para cada registro de asistencia.
+    """Calcula las horas extra efectivas y su clasificación diurna/nocturna.
 
-    Reglas aplicadas:
-    - Día laborable normal: se cuenta como extra el excedente sobre la jornada
-      base, SOLO si dicho excedente es >= OVERTIME_THRESHOLD_MINUTES.
-    - Día feriado: no existe jornada base; cualquier tiempo trabajado es extra.
-    - Fin de semana: jornada base = 0; se aplica el mismo criterio que feriado.
-
-    Cada dict resultante agrega las claves:
-        is_holiday   : bool
-        base_hours   : int   (horas de jornada estándar)
-        worked_td    : timedelta
-        excess_td    : timedelta (puede ser negativo si se salió antes)
-        overtime_td  : timedelta (>= 0, representa las horas extra efectivas)
-        worked_str   : str  "HH:MM:SS"
-        base_str     : str  "HH:MM:SS"
-        overtime_str : str  "HH:MM:SS" o "" si no hay extra
+    Clasificación diurna/nocturna de las HORAS EXTRA:
+    - Día laborable: las horas extra se producen al final de la jornada;
+      se clasifican según la franja horaria en que caen (07:30–21:00 diurna,
+      el resto nocturna).
+    - Fin de semana o feriado: TODAS las horas extra son nocturnas.
     """
     threshold = timedelta(minutes=OVERTIME_THRESHOLD_MINUTES)
     results = []
@@ -42,6 +32,7 @@ def calculate_overtime(
     for rec in records:
         d: date = rec["date"]
         is_holiday = d in holidays
+        is_weekend = d.weekday() >= 5
         base_h = get_base_hours(d, holidays)
         base_td = timedelta(hours=base_h)
 
@@ -49,17 +40,17 @@ def calculate_overtime(
         excess_td = worked_td - base_td
 
         if base_h == 0:
-            # Feriado o fin de semana: todo tiempo trabajado es extra
             overtime_td = max(worked_td, timedelta(0))
         elif excess_td >= threshold:
             overtime_td = excess_td
         else:
             overtime_td = timedelta(0)
 
-        # Clasificación diurna / nocturna
-        is_weekend = d.weekday() >= 5
-        day_td, night_td = _split_day_night(
-            rec["entry"], rec["exit"],
+        # Clasificar las horas EXTRA en diurnas / nocturnas
+        ot_day_td, ot_night_td = _split_overtime_day_night(
+            entry=rec["entry"],
+            exit_=rec["exit"],
+            overtime_td=overtime_td,
             force_all_night=(is_weekend or is_holiday),
         )
 
@@ -71,13 +62,13 @@ def calculate_overtime(
             "worked_td": worked_td,
             "excess_td": excess_td,
             "overtime_td": overtime_td,
-            "day_hours_td": day_td,
-            "night_hours_td": night_td,
+            "ot_day_td": ot_day_td,
+            "ot_night_td": ot_night_td,
             "worked_str": _td_to_str(worked_td),
             "base_str": f"{base_h:02d}:00:00",
             "overtime_str": _td_to_str(overtime_td) if overtime_td > timedelta(0) else "",
-            "day_hours_str": _td_to_str(day_td) if day_td > timedelta(0) else "",
-            "night_hours_str": _td_to_str(night_td) if night_td > timedelta(0) else "",
+            "ot_day_str": _td_to_str(ot_day_td) if ot_day_td > timedelta(0) else "",
+            "ot_night_str": _td_to_str(ot_night_td) if ot_night_td > timedelta(0) else "",
         })
 
     return results
@@ -88,14 +79,14 @@ def total_overtime(results: list[dict]) -> timedelta:
     return sum((r["overtime_td"] for r in results), timedelta(0))
 
 
-def total_day_hours(results: list[dict]) -> timedelta:
-    """Suma total de horas diurnas del período."""
-    return sum((r["day_hours_td"] for r in results), timedelta(0))
+def total_ot_day(results: list[dict]) -> timedelta:
+    """Suma horas extra diurnas del período."""
+    return sum((r["ot_day_td"] for r in results), timedelta(0))
 
 
-def total_night_hours(results: list[dict]) -> timedelta:
-    """Suma total de horas nocturnas del período."""
-    return sum((r["night_hours_td"] for r in results), timedelta(0))
+def total_ot_night(results: list[dict]) -> timedelta:
+    """Suma horas extra nocturnas del período."""
+    return sum((r["ot_night_td"] for r in results), timedelta(0))
 
 
 # ---------------------------------------------------------------------------
@@ -106,38 +97,38 @@ def _time_to_td(t: time) -> timedelta:
     return timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
 
 
-def _split_day_night(
+def _split_overtime_day_night(
     entry: time,
     exit_: time,
+    overtime_td: timedelta,
     force_all_night: bool = False,
 ) -> tuple[timedelta, timedelta]:
-    """Divide el tiempo trabajado en horas diurnas y nocturnas.
+    """Clasifica las horas EXTRA (no las trabajadas) en diurnas y nocturnas.
 
-    Diurnas: DAY_START – DAY_END (por defecto 07:30–21:00)
-    Nocturnas: antes de DAY_START + después de DAY_END
-
-    Si force_all_night es True (fin de semana o feriado), TODAS las horas
-    se imputan como nocturnas.
+    Lógica:
+    - Si no hay horas extra → (0, 0).
+    - Fin de semana / feriado → todo nocturno.
+    - Día laborable: las horas extra se producen al final de la jornada
+      (overtime_start = exit - overtime, overtime_end = exit).
+      Se aplica la franja diurna sobre ese intervalo.
     """
-    entry_td = _time_to_td(entry)
-    exit_td = _time_to_td(exit_)
-    total_worked = exit_td - entry_td
-
-    if total_worked <= timedelta(0):
+    if overtime_td <= timedelta(0):
         return timedelta(0), timedelta(0)
 
     if force_all_night:
-        return timedelta(0), total_worked
+        return timedelta(0), overtime_td
 
-    # Calcular solapamiento con la franja diurna [DAY_START, DAY_END)
-    # Solapamiento = max(0, min(exit, DAY_END) - max(entry, DAY_START))
-    overlap_start = max(entry_td, _DAY_START)
+    # Intervalo donde ocurren las horas extra (cola de la jornada)
+    exit_td = _time_to_td(exit_)
+    ot_start = exit_td - overtime_td
+
+    # Solapamiento del intervalo de overtime con la franja diurna
+    overlap_start = max(ot_start, _DAY_START)
     overlap_end = min(exit_td, _DAY_END)
-    day_td = max(overlap_end - overlap_start, timedelta(0))
+    ot_day = max(overlap_end - overlap_start, timedelta(0))
+    ot_night = overtime_td - ot_day
 
-    night_td = total_worked - day_td
-
-    return day_td, night_td
+    return ot_day, ot_night
 
 
 def _td_to_str(td: timedelta) -> str:

@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config import HOLIDAYS_PATH, HOLIDAYS_YEAR
 from src.holidays_loader import load_holidays
 from src.overtime_calculator import (
-    calculate_overtime, total_overtime, total_day_hours, total_night_hours,
+    calculate_overtime, total_overtime, total_ot_day, total_ot_night,
 )
 from src.pdf_extractor import extract_attendance, extract_period_label
 from src.report_generator import generate_excel_bytes
@@ -298,32 +298,32 @@ st.markdown(f"<p style='font-size:13px;color:#5d82c0;margin-top:6px'>Período: {
             unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Desglose horas diurnas / nocturnas
+# Desglose horas extra: diurnas / nocturnas
 # ---------------------------------------------------------------------------
-st.markdown('<p class="section-label">☀️ Desglose diurno / nocturno</p>',
+st.markdown('<p class="section-label">☀️ Horas extra — desglose diurno / nocturno</p>',
             unsafe_allow_html=True)
 
-day_td = total_day_hours(results)
-night_td = total_night_hours(results)
-day_h, day_rem = divmod(int(day_td.total_seconds()), 3600)
-day_m = day_rem // 60
-night_h, night_rem = divmod(int(night_td.total_seconds()), 3600)
-night_m = night_rem // 60
+ot_day_td = total_ot_day(results)
+ot_night_td = total_ot_night(results)
+ot_day_h, ot_day_rem = divmod(int(ot_day_td.total_seconds()), 3600)
+ot_day_m = ot_day_rem // 60
+ot_night_h, ot_night_rem = divmod(int(ot_night_td.total_seconds()), 3600)
+ot_night_m = ot_night_rem // 60
 
 dn_col1, dn_col2 = st.columns(2)
 
 with dn_col1:
     st.markdown(f"""
     <div class="metric-card metric-day">
-        <div class="label">☀️ Horas diurnas</div>
-        <div class="value">{day_h:02d}:{day_m:02d}</div>
+        <div class="label">☀️ Extra diurnas</div>
+        <div class="value">{ot_day_h:02d}:{ot_day_m:02d}</div>
     </div>""", unsafe_allow_html=True)
 
 with dn_col2:
     st.markdown(f"""
     <div class="metric-card metric-night">
-        <div class="label">🌙 Horas nocturnas</div>
-        <div class="value">{night_h:02d}:{night_m:02d}</div>
+        <div class="label">🌙 Extra nocturnas</div>
+        <div class="value">{ot_night_h:02d}:{ot_night_m:02d}</div>
     </div>""", unsafe_allow_html=True)
 
 # Contadores dinámicos: solo si hay registros de sábados, domingos o feriados
@@ -335,42 +335,40 @@ dynamic_cards = []
 
 if has_saturdays:
     sat_records = [r for r in results if r["date"].weekday() == 5]
-    sat_hours = sum((r["worked_td"] for r in sat_records), timedelta(0))
-    sat_h, sat_rem = divmod(int(sat_hours.total_seconds()), 3600)
+    sat_ot = sum((r["ot_night_td"] for r in sat_records), timedelta(0))
+    sat_h, sat_rem = divmod(int(sat_ot.total_seconds()), 3600)
     sat_m = sat_rem // 60
-    dynamic_cards.append(("Sábados", len(sat_records), f"{sat_h:02d}:{sat_m:02d}", "night"))
+    dynamic_cards.append(("Sábados", len(sat_records), f"{sat_h:02d}:{sat_m:02d}"))
 
 if has_sundays:
     sun_records = [r for r in results if r["date"].weekday() == 6]
-    sun_hours = sum((r["worked_td"] for r in sun_records), timedelta(0))
-    sun_h, sun_rem = divmod(int(sun_hours.total_seconds()), 3600)
+    sun_ot = sum((r["ot_night_td"] for r in sun_records), timedelta(0))
+    sun_h, sun_rem = divmod(int(sun_ot.total_seconds()), 3600)
     sun_m = sun_rem // 60
-    dynamic_cards.append(("Domingos", len(sun_records), f"{sun_h:02d}:{sun_m:02d}", "night"))
+    dynamic_cards.append(("Domingos", len(sun_records), f"{sun_h:02d}:{sun_m:02d}"))
 
 if has_holidays:
     hol_records = [r for r in results if r["is_holiday"]]
-    hol_hours = sum((r["worked_td"] for r in hol_records), timedelta(0))
-    hol_h, hol_rem = divmod(int(hol_hours.total_seconds()), 3600)
+    hol_ot = sum((r["ot_night_td"] for r in hol_records), timedelta(0))
+    hol_h, hol_rem = divmod(int(hol_ot.total_seconds()), 3600)
     hol_m = hol_rem // 60
-    dynamic_cards.append(("Feriados", len(hol_records), f"{hol_h:02d}:{hol_m:02d}", "day"))
+    dynamic_cards.append(("Feriados", len(hol_records), f"{hol_h:02d}:{hol_m:02d}"))
 
 if dynamic_cards:
     dyn_cols = st.columns(len(dynamic_cards))
-    for col, (label, count, hours, variant) in zip(dyn_cols, dynamic_cards):
-        icon = "🟠" if variant == "day" else "🌙"
-        note = "100% nocturnas" if variant == "night" else "100% nocturnas"
+    for col, (label, count, hours) in zip(dyn_cols, dynamic_cards):
         with col:
             st.markdown(f"""
-            <div class="metric-card metric-{variant}">
-                <div class="label">{icon} {label} ({count} día{"s" if count != 1 else ""})</div>
+            <div class="metric-card metric-night">
+                <div class="label">🌙 {label} ({count} día{"s" if count != 1 else ""})</div>
                 <div class="value">{hours}</div>
-                <div style="font-size:10px;color:#4a6a9e;margin-top:6px">{note}</div>
+                <div style="font-size:10px;color:#6b5bdb;margin-top:6px">100% nocturnas</div>
             </div>""", unsafe_allow_html=True)
 
 st.markdown(
     '<p style="font-size:11px;color:#4a6a9e;margin-top:4px">'
     'Diurnas: 07:30–21:00 · Nocturnas: 21:00–07:30 · '
-    'Sáb/Dom/Feriados: 100% nocturnas</p>',
+    'Sáb/Dom/Feriados: horas extra 100% nocturnas</p>',
     unsafe_allow_html=True,
 )
 st.divider()
@@ -392,8 +390,8 @@ for r in results:
         "Trabajado": r["worked_str"],
         "Estándar": r["base_str"],
         "H. Extra": r["overtime_str"] if r["overtime_str"] else "–",
-        "☀️ Diurnas": r["day_hours_str"] if r["day_hours_str"] else "–",
-        "🌙 Nocturnas": r["night_hours_str"] if r["night_hours_str"] else "–",
+        "☀️ Extra diurna": r["ot_day_str"] if r["ot_day_str"] else "–",
+        "🌙 Extra nocturna": r["ot_night_str"] if r["ot_night_str"] else "–",
         "_tiene_extra": r["overtime_td"] > timedelta(0),
         "_es_feriado": r["is_holiday"],
         "_es_weekend": r.get("is_weekend", False),
@@ -412,7 +410,7 @@ def _style_row(row):
 
 display_cols = [
     "Fecha", "Día", "Entrada", "Salida", "Trabajado", "Estándar",
-    "H. Extra", "☀️ Diurnas", "🌙 Nocturnas",
+    "H. Extra", "☀️ Extra diurna", "🌙 Extra nocturna",
 ]
 styled = (
     df.style
